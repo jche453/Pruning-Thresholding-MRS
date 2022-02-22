@@ -63,47 +63,100 @@ library(dplyr)
 library(robustHD)
 
 # Load real phenotype and methylation data
-Betas_all = get(load("/projects/huels_lab/DCHS/PACE/01_data/01_DNAm/04_QCed_data_combined/DRAKNC.RData"))
-Betas_all = slot(Betas_all,"assayData")[["betas"]]
-Betas_all = data.frame(Betas_all)
-beta = data.frame(t(Betas_all))
-beta[1:6,1:6] #check beta file
+DNAm_all = get(load("/projects/huels_lab/DCHS/PACE/01_data/01_DNAm/04_QCed_data_combined/DRAKNC.RData"))
+DNAm_all = slot(DNAm_all,"assayData")[["betas"]]
+DNAm_all = data.frame(DNAm_all)
+DNAm = data.frame(t(DNAm_all))
+DNAm[1:6,1:6] #check DNAm file
 #        cg00000029 cg00000109 cg00000165 cg00000236 cg00000289 cg00000292
-#UUU_11  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 
-#UUU_21  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
-#UUU_31  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
-#UUU_41  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
-#UUU_51  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
-#UUU_61  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
-
-#Load phenotype
-pheno = read.csv("/projects/huels_lab/MRS/03_results/01-Gestational_age/GA_Combined_updated.csv")
-#pheno needs to have a column called "ID" that matches beta file's rownames
-colnames(pheno)[1] = "ID"
+#ID_1  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 
+#ID_2  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
+#ID_3  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
+#ID_4  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
+#ID_5  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
+#ID_6  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
 
 ###Load smoking summary statistics (newborn)
 SS_newborn <- read.csv("/projects/huels_lab/MRS/01_data/03_smokingSS/SmokingSS_newborn_pace.csv")
-#Your final summary statistics dataframe should have at least three columns: CpGs names, coefficient and p-value
-SS = SS_newborn[,c(1,2,4)] #subset the first, second and fourth columns of SS_newborn
-#change the columns according to your dataset, 1st: CpGs, 2nd: coefficients, 3rd: p-value
+#The summary statistics file should have at least four columns: CpGs names, beta coefficient, 
+#standand errors and p-values
+SS = SS_newborn[,c(1,2,3,4)] #subset the first, second and fourth columns of SS_newborn
+#change the columns according to your dataset, 1st: CpGs, 2nd: coefficients, 3rd: SE and 4th: p-value
 #Rename the column names as "Marker", "BETA" and "Pvalue"
-colnames(SS) = c("Marker", "BETA", "Pvalue")
+colnames(SS) = c("Marker", "BETA", "SE", "Pvalue")
 head(SS)
-#      Marker    BETA    Pvalue
-#1 cg05575921 -0.1 1.00e-2
-#2 cg12803068  0.1 1.00e-2
-#3 cg04180046  0.1 1.00e-2
-#4 cg09935388 -0.1 1.00e-2
-#5 cg25949550 -0.1 1.00e-2
-#6 cg12876356 -0.1 1.00e-2
+#      Marker    BETA    SE Pvalue
+#1 cg05575921 -0.1 1  1.00e-2
+#2 cg12803068  0.1 1  1.00e-2
+#3 cg04180046  0.1 1  1.00e-2
+#4 cg09935388 -0.1 1  1.00e-2
+#5 cg25949550 -0.1 1  1.00e-2
+#6 cg12876356 -0.1 1  1.00e-2
 
 #Get the smallest p-value
 minpvalue = min(SS$Pvalue)
 minpvalue = sapply(strsplit(as.character(minpvalue), "-"), "[", 2)
-###Load Co-methylation regions for newborns
-load("/projects/huels_lab/MRS/03_results/03-CTMethod/00-CMR/02-Drakenstein_Newborn/CoMeRegion_Newborn_All.rda")
+###Load Co-methylation regions for newborns -> CoMeRegion
+load("/projects/huels_lab/MRS/03_results/03-Simulation/00-CMR/02-Drakenstein_Newborn/CoMeRegion_Newborn_All.rda")
 #Specify how p-value threshold, for example, if you want 5 * 10 ^ (-2), specify pthread to be 2
 Pthred = 2:minpvalue
-MRS = GenMRS(beta, SS_newborn, Pthred, pheno, CoMeRegion, CoMeBack = T)
+MRS = GenMRS(DNAm, SS, Pthred, CoMeRegion, CoMeBack = T, weightSE = F)
+#if weightSE = T, weights = BETA/SE, where BETA is the effect size
 MRS = MRS$MRS
-write.csv(MRS, "/projects/huels_lab/MRS/03_results/03-CTMethod/02-Smoking_MRS/MRS_smoking_newborn_PT.csv")
+write.csv(MRS, "MRS_smoking_newborn_PT.csv")
+
+#####################################
+##############STEP THREE#############
+#####################################
+#Compare prediction performance of MRS and select the optimized MRS
+#Load phenotype
+pheno = read.csv("/projects/huels_lab/MRS/03_results/01-Gestational_age/GA_Combined_updated.csv")
+pheno = pheno[,c("SampleID","prenatal_smoking")] 
+head(pheno)
+#SampleID prenatal_smoking
+#1  ID_1              1
+#2  ID_2              0
+#3  ID_3              1
+#4  ID_4              1
+#5  ID_5              1
+#6  ID_6              1
+#pheno needs to have at least one column called "ID" that matches beta file's rownames, 
+#and another column called "pheno" for phenotype (e.g. prenatal smoking)
+colnames(pheno) = c("ID", "pheno")
+#Merge MRS data and Phenotype data
+MRS_Pheno = merge(MRS$MRS, pheno, by = "ID")
+
+#Prediction performance of all MRS would be saved in CorResults
+CorResults = matrix(NA, ncol(MRS$MRS)-1, 1)
+rownames(CorResults) = colnames(MRS$MRS)[-1]
+for (j in 2:ncol(MRS$MRS)){
+  CorResults[(j-1),1] = cor(MRS_Pheno[,j], MRS_Pheno$pheno, use = "complete")^2
+}
+CorResults = data.frame(CorResults)
+colnames(CorResults) = "R2"
+#Maximum prediction
+max(CorResults)
+#P-value threshold that leads to maximum prediction
+MaxPNumber = which(CorResults == max(CorResults))
+rownames(CorResults)[MaxPNumber] #"P5e-23" and "P5e-22"
+
+#Plot figures
+library(ggplot2)
+CorResults[,"Pvalue"] = -log10(as.numeric(sapply(strsplit(rownames(CorResults), "P"), "[", 2))/5)
+ggplot(aes(x = Pvalue, y = R2), data = CorResults) +
+  geom_line(size = 1.3)+
+  geom_point() +
+  scale_y_continuous(name="Prediction accuracy") +
+  scale_x_continuous(name = "-log10(P-value/5)") +
+  scale_color_brewer(palette="Paired") + 
+  ggtitle("") +
+  theme( plot.title = element_text(family = "Times", face = "bold", size = 28, hjust = 0.5), #Adjusts the text properties of the plot title
+         axis.title = element_text(family = "Times", face = "bold", size = 24), #Adjusts the text properties of the axis titles
+         text = element_text(size = 20), #Adjusts the size of the x-axis items
+         axis.line = element_line(colour = "black"), #Adds axis lines in black color
+         panel.background = element_blank(), #Removes gray background
+         axis.ticks = element_blank(), #Removes axis tick marks
+         legend.title = element_blank(),
+         legend.position = "bottom"
+  )
+ggsave("CorResults_all.png", plot = last_plot()) 

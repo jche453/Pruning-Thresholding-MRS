@@ -58,9 +58,12 @@ GenCoMeRegion = function(cmrs = NULL, beta, reference = NULL, Overlap = F){
   return(CoMeRegion)
 }
 
-GenMRS = function(beta, SS, Pthred, pheno, CoMeRegion, CoMeBack = T){
+GenMRS = function(beta, SS, Pthred, CoMeRegion, CoMeBack = T, weightSE = F){
   pvalueinfo = matrix(NA, length(Pthred),5)
   colnames(pvalueinfo) = c("Pvalue", "Number of CpG sites", "Numeber of CpG sites after matching with CoMeRegion", " Number of CpG sites after pruning", "Numeber of CpG sites after matching with DNA methylation data")
+  if (weightSE == T){
+    SS$BETA = SS$BETA/SS$SE
+  }
   for (i in Pthred){
     pvalue = 5 * 10 ^ (-i)
     pvalueinfo[i-1,1] =  pvalue
@@ -88,8 +91,7 @@ GenMRS = function(beta, SS, Pthred, pheno, CoMeRegion, CoMeBack = T){
       colnames(MRS) = c(paste0("P",pvalue))
       MRS$ID = rownames(MRS)
       if (i == Pthred[1]){
-        #pheno sample ID changed to SampleID
-        MRS_final = merge(MRS, pheno, by = "ID", all = T)
+        MRS_final = MRS
       }else{
         MRS_final = merge(MRS, MRS_final, by = "ID", all = T)
       }
