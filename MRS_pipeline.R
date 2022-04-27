@@ -77,7 +77,7 @@ DNAm[1:6,1:6] #check DNAm file
 #ID_6  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
 
 ###Load smoking summary statistics (newborn)
-SS_newborn <- read.csv("/projects/huels_lab/MRS/01_data/03_smokingSS/SmokingSS_newborn_pace.csv")
+SS_newborn <- read.csv("/projects/huels_lab/MRS/01-PT/01_data/03_smokingSS/SmokingSS_newborn_pace.csv")
 #The summary statistics file should have at least four columns: CpGs names, beta coefficient, 
 #standand errors and p-values
 SS = SS_newborn[,c(1,2,3,4)] #subset the first, second and fourth columns of SS_newborn
@@ -97,13 +97,16 @@ head(SS)
 minpvalue = min(SS$Pvalue)
 minpvalue = sapply(strsplit(as.character(minpvalue), "-"), "[", 2)
 ###Load Co-methylation regions for newborns -> CoMeRegion
-load("/projects/huels_lab/MRS/03_results/03-Simulation/00-CMR/02-Drakenstein_Newborn/CoMeRegion_Newborn_All.rda")
+load("/projects/huels_lab/MRS/01-PT/03_results/03-Simulation/00-CMR/02-Drakenstein_Newborn/CoMeRegion_Newborn_All.rda")
 #Specify how p-value threshold, for example, if you want 5 * 10 ^ (-2), specify pthread to be 2
 Pthred = 2:minpvalue
 MRS = GenMRS(DNAm, SS, Pthred, CoMeRegion, CoMeBack = T, weightSE = F)
 #if weightSE = T, weights = BETA/SE, where BETA is the effect size
-MRS = MRS$MRS
-write.csv(MRS, "MRS_smoking_newborn_PT.csv")
+#Basic information of MRS
+head(MRS$pvalueinfo)
+#MRS matrix
+head(MRS$MRS)
+write.csv(MRS$MRS, "MRS_smoking_newborn_PT.csv")
 
 #####################################
 ##############STEP THREE#############
