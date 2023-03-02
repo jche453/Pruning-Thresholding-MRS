@@ -1,12 +1,8 @@
 #####################################
 ##############STEP ONE###############
 #####################################
-### Generate co-methylated regions ###
-# install.packages("comeback_0.1.0.tar.gz", repos = NULL, type="source")
-#comeback_0.1.0.tar.gz can be found at https://bitbucket.org/flopflip/comeback.
-library(comeback)
-source(MRS_func.R)
 
+#####################################
 # Load phenotypes file
 pheno = read.csv("/projects/huels_lab/MRS/03_results/01-Gestational_age/GA_Combined_updated.csv")
 #Need two columns, ID and ethnicity/race
@@ -33,15 +29,25 @@ for(i in 1:(ncol(betas)-1)){
   lm1 <- lm(cpg ~ race, data = dat2)
   res[,i] = resid(lm1)
 }
-save(res, file="/projects/huels_lab/MRS/03_results/03-CTMethod/00-CMR/02-Drakenstein_Newborn/Newborn_betas_controlled_for_ancestry.RData")
+save(res, file="betas_test.RData")
 
-#Run cmr function to generate Co-methylation regions
+##########################################################
+###Run cmr function to generate Co-methylation regions####
+##########################################################
+### Generate co-methylated regions ###
+# install.packages("comeback_0.1.0.tar.gz", repos = NULL, type="source")
+#comeback_0.1.0.tar.gz can be found at https://bitbucket.org/flopflip/comeback.
+library(comeback)
+source("MRS_func.R")
+
+load("betas_test.RData")
+res = t(res) #column are CpG sites, rows are for samples
 cmrs <- cmr(Mdata = res, corlo = 0.3)
 #cmrs is the output from cmr(), and saved all the co-methylation regions in a list
-save(cmrs, file="/projects/huels_lab/MRS/03_results/03-CTMethod/00-CMR/02-Drakenstein_Newborn/Newborn_CMRs_controlled_for_ancestry.RData")
+save(cmrs, file="CMR.test.RData")
 
 #read ref cmr
-cmrs_ref <- readRDS("/projects/huels_lab/MRS/03_results/03-CTMethod/00-CMR/03-Reference/cmr_B_noCTC_Scor30_crldst400_mxd1K_mxld2_medNoCTC_disFree_age25_80.rds")
+#cmrs_ref <- readRDS("ref.rds")
 
 # To generate Co-methylation regions dataframe for later analysis, 
 # you can either input cmrs calculated from your own dataset,
@@ -52,7 +58,7 @@ CoMeRegion = GenCoMeRegion(beta = res, reference = cmrs_ref, Overlap = F)
 CoMeRegion = GenCoMeRegion(cmrs = cmrs, beta = res, reference = cmrs_ref, Overlap = T)
 
 #CoMeRegion is a matrix that assigned a unique number to each co-methylation region
-save(CoMeRegion, file = "/projects/huels_lab/MRS/03_results/03-CTMethod/00-CMR/01-Adults/CoMeRegion_Newborn_All.rda")
+save(CoMeRegion, file = "CoMeRegion.rda")
 
 #####################################
 ##############STEP TWO###############

@@ -35,7 +35,7 @@ GenCoMeRegion = function(cmrs = NULL, beta, reference = NULL, Overlap = F){
   
   CoMeRegion = NULL 
   for (i in 1: length(cmrsnew)){
-    print(paste0("run this ", i, " times"))
+    #print(paste0("run this ", i, " times"))
     clustercpg = unlist(cmrsnew[i])
     data_cpg = data.frame(clustercpg, CoMethylCluster = i)
     CoMeRegion = rbind(CoMeRegion,data_cpg)
