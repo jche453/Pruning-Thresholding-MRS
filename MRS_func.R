@@ -101,7 +101,7 @@ GenMRS = function(beta, SS, Pthred, CoMeRegion, CoMeBack = T, weightSE = F){
   return(results)
 }
 
-GenMRS_mediation = function(beta, SS, Pthred, CoMeRegion, CoMeBack = F){
+GenMRS_mediation = function(beta, SS, Pthred){
   pvalueinfo = matrix(NA, length(Pthred),5)
   colnames(pvalueinfo) = c("Pvalue", "Number of CpG sites", "Numeber of CpG sites after matching with CoMeRegion", " Number of CpG sites after pruning", "Numeber of CpG sites after matching with DNA methylation data")
   for (i in Pthred){
@@ -110,18 +110,8 @@ GenMRS_mediation = function(beta, SS, Pthred, CoMeRegion, CoMeBack = F){
     SS_sub = SS[SS$Pvalue.x < pvalue & SS$Pvalue.y < pvalue, ]
     pvalueinfo[i-1,2] =  nrow(SS_sub)
     
-    if (CoMeBack){
-      SS_final = merge(SS_sub, CoMeRegion, by.x = "Marker", by.y = "clustercpg")
-      SS_final = data.frame(SS_final)
-      pvalueinfo[i-1,3] =  nrow(SS_final)
-      SS_final = SS_final %>% 
-        group_by(CoMethylCluster) %>% 
-        slice(which.min(Pvalue))
-      pvalueinfo[i-1,4] =  nrow(SS_final)
-    }else{
-      SS_final = merge(SS_sub, CoMeRegion, by.x = "Marker", by.y = "clustercpg")
-      SS_final = data.frame(SS_final)
-    }
+    SS_final = data.frame(SS_sub)
+    
     betas_final = data.frame(t(beta[,SS_final$Marker, drop = F]))
     betas_final$Marker = rownames(betas_final)
     mat_final = merge(betas_final, SS_final, by = "Marker")
