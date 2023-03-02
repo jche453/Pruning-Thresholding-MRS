@@ -4,13 +4,13 @@
 
 #####################################
 # Load phenotypes file
-pheno = read.csv("/projects/huels_lab/MRS/03_results/01-Gestational_age/GA_Combined_updated.csv")
+pheno = read.csv("GA_Combined_updated.csv")
 #Need two columns, ID and ethnicity/race
 pheno = pheno[,c("SampleID","ethnicity")]
 colnames(pheno) = c("ID", "race")
 
 # Load DNA methylation (beta) file
-betas = get(load("/projects/huels_lab/DCHS/PACE/01_data/01_DNAm/04_QCed_data_combined/DRAKNC.RData"))
+betas = get(load("DRAKNC.RData"))
 betas = slot(betas,"assayData")[["betas"]]
 betas = data.frame(t(betas))
 betas$ID = rownames(betas)  
@@ -68,24 +68,15 @@ library(dplyr)
 library(robustHD)
 
 # Load real phenotype and methylation data
-DNAm_all = get(load("/projects/huels_lab/DCHS/PACE/01_data/01_DNAm/04_QCed_data_combined/DRAKNC.RData"))
-DNAm_all = slot(DNAm_all,"assayData")[["betas"]]
-DNAm_all = data.frame(DNAm_all)
-DNAm = data.frame(t(DNAm_all))
+DNAm = get(load("betas_test.RData"))
+DNAm = t(DNAm)
 DNAm[1:6,1:6] #check DNAm file
-#        cg00000029 cg00000109 cg00000165 cg00000236 cg00000289 cg00000292
-#ID_1  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 
-#ID_2  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
-#ID_3  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
-#ID_4  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
-#ID_5  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
-#ID_6  0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
 
 ###Load smoking summary statistics (newborn)
-SS_newborn <- read.csv("/projects/huels_lab/MRS/01-PT/01_data/03_smokingSS/SmokingSS_newborn_pace.csv")
+SS_newborn <- read.csv("SmokingSS_Adults_CHARGE.csv")
 #The summary statistics file should have at least four columns: CpGs names, beta coefficient, 
 #standand errors and p-values
-SS = SS_newborn[,c(1,2,3,4)] #subset the first, second and fourth columns of SS_newborn
+SS = SS_newborn[,c(1,2,3,4)]
 #change the columns according to your dataset, 1st: CpGs, 2nd: coefficients, 3rd: SE and 4th: p-value
 #Rename the column names as "Marker", "BETA" and "Pvalue"
 colnames(SS) = c("Marker", "BETA", "SE", "Pvalue")
@@ -99,45 +90,40 @@ head(SS)
 #6 cg12876356 -0.1 1  1.00e-2
 
 #Get the smallest p-value
-minpvalue = min(SS$Pvalue)
+minpvalue = min(SS$Pvalue[SS$Pvalue != 0])
 minpvalue = sapply(strsplit(as.character(minpvalue), "-"), "[", 2)
 ###Load Co-methylation regions for newborns -> CoMeRegion
-load("/projects/huels_lab/MRS/01-PT/03_results/03-Simulation/00-CMR/02-Drakenstein_Newborn/CoMeRegion_Newborn_All.rda")
+load("CoMeRegion.rda")
 #Specify how p-value threshold, for example, if you want 5 * 10 ^ (-2), specify pthread to be 2
 Pthred = 2:minpvalue
 MRS = GenMRS(DNAm, SS, Pthred, CoMeRegion, CoMeBack = T, weightSE = F)
 #if weightSE = T, weights = BETA/SE, where BETA is the effect size
 #Basic information of MRS
-head(MRS$pvalueinfo)
-#MRS matrix
-head(MRS$MRS)
-write.csv(MRS$MRS, "MRS_smoking_newborn_PT.csv")
+write.csv(MRS$pvalueinfo, "MRS_pvalueinfo.csv", row.names = F)
+write.csv(MRS$MRS, "MRS.csv", row.names = F)
 
+MRS$ID
 #####################################
 ##############STEP THREE#############
 #####################################
+#Read MRS file
+MRS = read.csv("MRS.csv")
+
 #Compare prediction performance of MRS and select the optimized MRS
 #Load phenotype
-pheno = read.csv("/projects/huels_lab/MRS/03_results/01-Gestational_age/GA_Combined_updated.csv")
-pheno = pheno[,c("SampleID","prenatal_smoking")] 
+pheno = read.csv("pheno.csv")
+pheno = pheno[,c("ID","pheno")] 
 head(pheno)
-#SampleID prenatal_smoking
-#1  ID_1              1
-#2  ID_2              0
-#3  ID_3              1
-#4  ID_4              1
-#5  ID_5              1
-#6  ID_6              1
 #pheno needs to have at least one column called "ID" that matches beta file's rownames, 
 #and another column called "pheno" for phenotype (e.g. prenatal smoking)
 colnames(pheno) = c("ID", "pheno")
 #Merge MRS data and Phenotype data
-MRS_Pheno = merge(MRS$MRS, pheno, by = "ID")
+MRS_Pheno = merge(MRS, pheno, by = "ID")
 
 #Prediction performance of all MRS would be saved in CorResults
-CorResults = matrix(NA, ncol(MRS$MRS)-1, 1)
-rownames(CorResults) = colnames(MRS$MRS)[-1]
-for (j in 2:ncol(MRS$MRS)){
+CorResults = matrix(NA, ncol(MRS)-1, 1)
+rownames(CorResults) = colnames(MRS)[-1]
+for (j in 2:ncol(MRS)){
   CorResults[(j-1),1] = cor(MRS_Pheno[,j], MRS_Pheno$pheno, use = "complete")^2
 }
 CorResults = data.frame(CorResults)
@@ -146,11 +132,13 @@ colnames(CorResults) = "R2"
 max(CorResults)
 #P-value threshold that leads to maximum prediction
 MaxPNumber = which(CorResults == max(CorResults))
+MaxPNumber
 rownames(CorResults)[MaxPNumber] #"P5e-23" and "P5e-22"
 
 #Plot figures
 library(ggplot2)
-CorResults[,"Pvalue"] = -log10(as.numeric(sapply(strsplit(rownames(CorResults), "P"), "[", 2))/5)
+CorResults[,"Pvalue"] = as.numeric(sapply(strsplit(rownames(CorResults), "P5e."), "[", 2))
+CorResults[is.na(CorResults$Pvalue),"Pvalue"] = -log10(as.numeric(sapply(strsplit(rownames(CorResults)[is.na(CorResults$Pvalue)], "P"), "[", 2))/5)
 ggplot(aes(x = Pvalue, y = R2), data = CorResults) +
   geom_line(size = 1.3)+
   geom_point() +
@@ -167,4 +155,4 @@ ggplot(aes(x = Pvalue, y = R2), data = CorResults) +
          legend.title = element_blank(),
          legend.position = "bottom"
   )
-ggsave("CorResults_all.png", plot = last_plot()) 
+ggsave("CorResults.png", plot = last_plot(), height = 6, width = 6) 
