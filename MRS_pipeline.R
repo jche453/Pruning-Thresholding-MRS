@@ -2,8 +2,8 @@
 ##############STEP ONE###############
 #####################################
 ### Generate co-methylated regions ###
-# install.packages("/projects/huels_lab/MRS/02_code/03-CTMethod/01-CoMeBack/comeback_0.1.0.tar.gz", 
-# repos = NULL, type="source")
+# install.packages("comeback_0.1.0.tar.gz", repos = NULL, type="source")
+#comeback_0.1.0.tar.gz can be found at https://bitbucket.org/flopflip/comeback.
 library(comeback)
 source(MRS_func.R)
 
@@ -36,7 +36,6 @@ for(i in 1:(ncol(betas)-1)){
 save(res, file="/projects/huels_lab/MRS/03_results/03-CTMethod/00-CMR/02-Drakenstein_Newborn/Newborn_betas_controlled_for_ancestry.RData")
 
 #Run cmr function to generate Co-methylation regions
-set.seed(1234)
 cmrs <- cmr(Mdata = res, corlo = 0.3)
 #cmrs is the output from cmr(), and saved all the co-methylation regions in a list
 save(cmrs, file="/projects/huels_lab/MRS/03_results/03-CTMethod/00-CMR/02-Drakenstein_Newborn/Newborn_CMRs_controlled_for_ancestry.RData")
