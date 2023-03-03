@@ -72,7 +72,7 @@ DNAm = get(load("betas_test.RData"))
 DNAm = t(DNAm)
 DNAm[1:6,1:6] #check DNAm file
 
-###Load smoking summary statistics (newborn)
+###Load smoking summary statistics from discovery dataset
 SS_newborn <- read.csv("SmokingSS_Adults_CHARGE.csv")
 #The summary statistics file should have at least four columns: CpGs names, beta coefficient, 
 #standand errors and p-values
@@ -102,7 +102,6 @@ MRS = GenMRS(DNAm, SS, Pthred, CoMeRegion, CoMeBack = T, weightSE = F)
 write.csv(MRS$pvalueinfo, "MRS_pvalueinfo.csv", row.names = F)
 write.csv(MRS$MRS, "MRS.csv", row.names = F)
 
-MRS$ID
 #####################################
 ##############STEP THREE#############
 #####################################
