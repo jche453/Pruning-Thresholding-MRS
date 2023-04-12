@@ -101,32 +101,3 @@ GenMRS = function(beta, SS, Pthred, CoMeRegion, CoMeBack = T, weightSE = F){
   return(results)
 }
 
-GenMRS_mediation = function(beta, SS, Pthred){
-  pvalueinfo = matrix(NA, length(Pthred),5)
-  colnames(pvalueinfo) = c("Pvalue", "Number of CpG sites", "Numeber of CpG sites after matching with CoMeRegion", " Number of CpG sites after pruning", "Numeber of CpG sites after matching with DNA methylation data")
-  for (i in Pthred){
-    pvalue = 5 * 10 ^ (-i)
-    pvalueinfo[i-1,1] =  pvalue
-    SS_sub = SS[SS$Pvalue.x < pvalue & SS$Pvalue.y < pvalue, ]
-    pvalueinfo[i-1,2] =  nrow(SS_sub)
-    
-    SS_final = data.frame(SS_sub)
-    
-    betas_final = data.frame(t(beta[,SS_final$Marker, drop = F]))
-    betas_final$Marker = rownames(betas_final)
-    mat_final = merge(betas_final, SS_final, by = "Marker")
-    pvalueinfo[i-1,5] =  nrow(mat_final)
-    if (nrow(mat_final) > 0){
-      MRS = data.frame(t(as.matrix(mat_final[,2:(ncol(betas_final))])) %*% (mat_final$BETA))
-      colnames(MRS) = c(paste0("P",pvalue))
-      MRS$ID = rownames(MRS)
-      if (i == Pthred[1]){
-        MRS_final = MRS
-      }else{
-        MRS_final = merge(MRS, MRS_final, by = "ID", all = T)
-      }
-    }
-  }
-  results = list(pvalueinfo = pvalueinfo, MRS = MRS_final)
-  return(results)
-}
