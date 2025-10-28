@@ -79,8 +79,8 @@ GenMRS = function(beta, SS, Pthred, CoMeRegion, CoMeBack = T, weightSE = F){
         slice(which.min(Pvalue))
       pvalueinfo[i-1,4] =  nrow(SS_final)
     }else{
-      SS_final = merge(SS_sub, CoMeRegion, by.x = "Marker", by.y = "clustercpg")
-      SS_final = data.frame(SS_final)
+      #SS_final = merge(SS_sub, CoMeRegion, by.x = "Marker", by.y = "clustercpg")
+      SS_final = data.frame(SS_sub)
     }
     betas_final = data.frame(t(beta[,SS_final$Marker, drop = F]))
     betas_final$Marker = rownames(betas_final)
@@ -98,6 +98,22 @@ GenMRS = function(beta, SS, Pthred, CoMeRegion, CoMeBack = T, weightSE = F){
     }
   }
   results = list(pvalueinfo = pvalueinfo, MRS = MRS_final)
+  return(results)
+}
+
+bestCpG = function(SS, bestP, CoMeRegion, CoMeBack = T){
+  pvalue = bestP
+  SS_sub = SS[SS$Pvalue < pvalue, ]
+  if (CoMeBack){
+    SS_final = merge(SS_sub, CoMeRegion, by.x = "Marker", by.y = "clustercpg")
+    SS_final = data.frame(SS_final)
+    SS_final = SS_final %>% 
+      group_by(CoMethylCluster) %>% 
+      slice(which.min(Pvalue))
+  }else{
+    SS_final = data.frame(SS_sub)
+  }
+  results = SS_final$Marker
   return(results)
 }
 

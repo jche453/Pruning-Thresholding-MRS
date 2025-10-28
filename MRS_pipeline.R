@@ -155,3 +155,14 @@ ggplot(aes(x = Pvalue, y = R2), data = CorResults) +
          legend.position = "bottom"
   )
 ggsave("CorResults.png", plot = last_plot(), height = 6, width = 6) 
+
+# ------------------------------------------
+# CpG sites used to calculate the best MRS
+library(dplyr)  
+source("MRS_func.R")
+# bestP is the p-value that produces the optimal MRS.
+# Different bestP can be set if you want to retrieve sets of CpG sites that produce other MRS.
+bestP = 5 * 10 ^ (-23)
+cpgbest = bestCpG(SS, bestP, CoMeRegion, CoMeBack = T)
+
+
